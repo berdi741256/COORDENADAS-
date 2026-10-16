@@ -124,7 +124,7 @@ dd.big{font-size:1.2rem;font-weight:500}
   <header>
     <div class="tag">WGS-84 · UTM · AZIMUT / DISTANCIA</div>
     <h1>Conversor de Coordenadas</h1>
-    <p>Ingresa un punto en geográficas, rectangulares (UTM) o polares, y obtén las otras dos. Las polares se miden desde el punto de origen (estación).</p>
+    <p>Ingresa un punto en geográficas, rectangulares (UTM) o polares, y obtén las otras dos. Las polares se miden desde el punto de observación (origen).</p>
   </header>
   <div class="toolbar">
     <button type="button" class="btn primary" id="openMap"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Abrir mapa</button>
@@ -134,12 +134,12 @@ dd.big{font-size:1.2rem;font-weight:500}
   <div class="grid2">
     <!-- ORIGEN -->
     <section class="card" aria-labelledby="h-orig">
-      <h2 id="h-orig"><span class="dot"></span>Punto de origen (estación)</h2>
-      <div class="seg" role="group" aria-label="Formato del origen">
+      <h2 id="h-orig"><span class="dot"></span>Punto de observación (origen)</h2>
+      <div class="seg" role="group" aria-label="Formato del punto de observación">
         <button type="button" data-o="geo" aria-pressed="true">Geográficas</button>
         <button type="button" data-o="utm" aria-pressed="false">Rectangulares</button>
       </div>
-      <button type="button" class="gps" id="oGps"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2"/></svg>Usar mi ubicación como origen</button>
+      <button type="button" class="gps" id="oGps"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2"/></svg>Usar mi ubicación como punto de observación</button>
       <p class="hint gpsmsg" id="oGpsMsg"></p>
       <div class="fields" id="o-geo">
         <label>Latitud<input id="oLat" inputmode="text" autocomplete="off" value="12°02'46.9&quot; S"></label>
@@ -185,7 +185,7 @@ dd.big{font-size:1.2rem;font-weight:500}
         </label>
       </div>
       <p class="err" id="tErr"></p>
-      <p class="hint">Valores de ejemplo cargados: origen en la Plaza de Armas de Lima, azimut 2400 mils a 5 km.</p>
+      <p class="hint">Valores de ejemplo cargados: punto de observación en la Plaza de Armas de Lima, azimut 2400 mils a 5 km.</p>
     </section>
   </div>
 
@@ -219,7 +219,7 @@ dd.big{font-size:1.2rem;font-weight:500}
         <dt>Contraazimut</dt><dd id="pBack">—</dd>
         <dt>ΔE / ΔN</dt><dd id="pDelta">—</dd>
       </dl>
-      <div class="diagram"><svg id="svg" viewBox="0 0 260 260" role="img" aria-label="Esquema del azimut desde el origen"></svg></div>
+      <div class="diagram"><svg id="svg" viewBox="0 0 260 260" role="img" aria-label="Esquema del azimut desde el punto de observación"></svg></div>
       <button type="button" class="copy" data-copy="pol">Copiar</button>
     </section>
   </div>
@@ -230,7 +230,7 @@ dd.big{font-size:1.2rem;font-weight:500}
     <div class="mappanel">
       <div class="row">
         <div class="seg" role="group" aria-label="Qué marcar al tocar el mapa">
-          <button type="button" data-mm="origin" aria-pressed="false">Marcar origen</button>
+          <button type="button" data-mm="origin" aria-pressed="false">Marcar P. observación</button>
           <button type="button" data-mm="target" aria-pressed="true">Marcar objetivo</button>
           <button type="button" data-mm="info" aria-pressed="false">Solo consultar</button>
         </div>
@@ -248,9 +248,9 @@ dd.big{font-size:1.2rem;font-weight:500}
         <button type="button" class="btn ghost" id="mapGps">Mi ubicación</button>
       </div>
       <div class="mappts">
-        <div class="pt o"><div class="hd">Origen<button type="button" data-cp="o">Copiar</button></div><span id="mpO1">—</span><span id="mpO2"></span><span id="mpO3"></span></div>
+        <div class="pt o"><div class="hd">Punto de observación (origen)<button type="button" data-cp="o">Copiar</button></div><span id="mpO1">—</span><span id="mpO2"></span><span id="mpO3"></span></div>
         <div class="pt t"><div class="hd">Objetivo<button type="button" data-cp="t">Copiar</button></div><span id="mpT1">—</span><span id="mpT2"></span><span id="mpT3"></span></div>
-        <div class="pt p"><div class="hd">Polares origen → objetivo<button type="button" data-cp="all">Copiar todo</button></div><span id="mpP">—</span></div>
+        <div class="pt p"><div class="hd">Polares PO → objetivo<button type="button" data-cp="all">Copiar todo</button></div><span id="mpP">—</span></div>
       </div>
       <div class="row">
         <div class="mapinfo" id="mapInfo"><span class="k">Toca el mapa para ver sus coordenadas</span></div>
@@ -259,7 +259,7 @@ dd.big{font-size:1.2rem;font-weight:500}
     </div>
   </div>
 
-  <p class="note"><b>Notas.</b> Elipsoide WGS‑84, proyección UTM (k₀ = 0.9996). El azimut polar es <b>azimut de cuadrícula</b>, medido desde el Norte de cuadrícula en sentido horario; la distancia es la distancia de cuadrícula entre ambos puntos. Si el punto cae en otra zona UTM, las polares se calculan extendiendo la zona del origen. Perú ocupa las zonas 17, 18 y 19 Sur.</p>
+  <p class="note"><b>Notas.</b> Elipsoide WGS‑84, proyección UTM (k₀ = 0.9996). El azimut polar es <b>azimut de cuadrícula</b>, medido desde el Norte de cuadrícula en sentido horario; la distancia es la distancia de cuadrícula entre ambos puntos. Si el punto cae en otra zona UTM, las polares se calculan extendiendo la zona del punto de observación. Perú ocupa las zonas 17, 18 y 19 Sur.</p>
 </div>
 
 <script>
@@ -335,13 +335,13 @@ try{const s=JSON.parse(localStorage.getItem("convcoord")||"null");if(s){$("tAzU"
 function readOrigin(){
   if(oMode==="geo"){
     let lat,lon;
-    try{lat=parseAngle($("oLat").value,"lat");}catch(e){throw "Latitud del origen: "+e;}
-    try{lon=parseAngle($("oLon").value,"lon");}catch(e){throw "Longitud del origen: "+e;}
+    try{lat=parseAngle($("oLat").value,"lat");}catch(e){throw "Latitud del punto de observación: "+e;}
+    try{lon=parseAngle($("oLon").value,"lon");}catch(e){throw "Longitud del punto de observación: "+e;}
     return {lat,lon,utm:toUTM(lat,lon)};
   }
   const z=parseInt($("oZone").value,10), south=$("oHem").value==="S", E=num($("oE").value), N=num($("oN").value);
-  if(!(z>=1&&z<=60)) throw "Zona del origen: entre 1 y 60";
-  if(!isFinite(E)||!isFinite(N)) throw "Ingresa Este y Norte del origen";
+  if(!(z>=1&&z<=60)) throw "Zona del punto de observación: entre 1 y 60";
+  if(!isFinite(E)||!isFinite(N)) throw "Ingresa Este y Norte del punto de observación";
   const g=fromUTM(z,south,E,N);
   return {lat:g.lat,lon:g.lon,utm:{zone:z,south,E,N}};
 }
@@ -394,7 +394,7 @@ function compute(){
   $("pBack").textContent=fm(back*6400/360,1)+" mils · "+fm(back,2)+"°";
   $("pDelta").textContent=(dE>=0?"+":"")+fm(dE,1)+" / "+(dN>=0?"+":"")+fm(dN,1);
   ["geo","utm","pol"].forEach(k=>{const r=$("r-"+k);const on=k===tMode;r.classList.toggle("src",on);r.querySelector("h3 small").textContent=on?"entrada":"";});
-  if(last.zoneDiff) $("tErr").textContent="Aviso: el punto está en la zona "+u.zone+"; las polares usan la zona "+o.utm.zone+" del origen.";
+  if(last.zoneDiff) $("tErr").textContent="Aviso: el punto está en la zona "+u.zone+"; las polares usan la zona "+o.utm.zone+" del punto de observación.";
   draw(az,dist);
   syncMap();
 }
@@ -484,9 +484,9 @@ document.querySelectorAll(".copy").forEach(b=>b.addEventListener("click",()=>{
 }));
 function copyAllTo(btn){
   if(!last||!lastOrig){$("tErr").textContent="Completa los datos para poder copiar.";return;}
-  copyText("ORIGEN\n  "+geoTxt(lastOrig.lat,lastOrig.lon)+"\n  "+utmTxt(lastOrig.lat,lastOrig.lon)+
+  copyText("PUNTO DE OBSERVACIÓN (ORIGEN)\n  "+geoTxt(lastOrig.lat,lastOrig.lon)+"\n  "+utmTxt(lastOrig.lat,lastOrig.lon)+
     "\nOBJETIVO\n  "+geoTxt(last.t.lat,last.t.lon)+"\n  "+utmTxt(last.t.lat,last.t.lon)+
-    "\nPOLARES (desde el origen)\n  "+polTxt()+"\n  Contraazimut "+(norm360(last.az+180)*6400/360).toFixed(1)+" mils",btn);
+    "\nPOLARES (desde el punto de observación)\n  "+polTxt()+"\n  Contraazimut "+(norm360(last.az+180)*6400/360).toFixed(1)+" mils",btn);
 }
 $("copyAll").addEventListener("click",()=>copyAllTo($("copyAll")));
 
@@ -529,7 +529,7 @@ function cota(la,lo){try{const h=map.queryTerrainElevation([lo,la]);const ex=map
 function pick(la,lo,apply){
   picked={la,lo};
   const h=cota(la,lo);
-  $("mapInfo").innerHTML='<span class="k">'+(mapMode==="origin"&&apply?"Origen marcado":mapMode==="target"&&apply?"Objetivo marcado":"Punto consultado")+'</span>'+
+  $("mapInfo").innerHTML='<span class="k">'+(mapMode==="origin"&&apply?"Punto de observación marcado":mapMode==="target"&&apply?"Objetivo marcado":"Punto consultado")+'</span>'+
     '<span>'+dms(la,"N","S")+"  "+dms(lo,"E","O")+'</span><span>'+utmTxt(la,lo)+'</span>'+(h!=null?'<span>Cota ≈ '+Math.round(h)+' m</span>':'');
   $("mapCopy").hidden=false;
   if(apply&&mapMode==="origin")setOrigin(la,lo);
@@ -548,7 +548,7 @@ function syncMap(fit){
   if(!map||!mapReady)return;
   const pts=[];
   if(lastOrig){
-    if(!mkO){mkO=new maplibregl.Marker({element:mkEl("o","ORIGEN"),anchor:"bottom",draggable:true,opacity:"1",opacityWhenCovered:"1"}).setLngLat([lastOrig.lon,lastOrig.lat]).addTo(map);
+    if(!mkO){mkO=new maplibregl.Marker({element:mkEl("o","PO"),anchor:"bottom",draggable:true,opacity:"1",opacityWhenCovered:"1"}).setLngLat([lastOrig.lon,lastOrig.lat]).addTo(map);
       mkO.on("dragend",()=>{const p=mkO.getLngLat();pick(p.lat,p.lng,false);setOrigin(p.lat,p.lng);});}
     else mkO.setLngLat([lastOrig.lon,lastOrig.lat]);
     pts.push([lastOrig.lon,lastOrig.lat]);
@@ -589,7 +589,7 @@ $("exag").addEventListener("input",()=>{if(map&&mapReady)map.setTerrain(+$("exag
 $("map3d").addEventListener("click",()=>{is3d=!is3d;$("map3d").textContent=is3d?"Vista 2D":"Vista 3D";if(map)map.easeTo({pitch:is3d?55:0,bearing:is3d?map.getBearing():0});});
 document.querySelectorAll("[data-cp]").forEach(b=>b.addEventListener("click",()=>{
   const k=b.dataset.cp;
-  if(k==="o"&&lastOrig)copyText("ORIGEN\n"+geoTxt(lastOrig.lat,lastOrig.lon)+"\n"+utmTxt(lastOrig.lat,lastOrig.lon),b);
+  if(k==="o"&&lastOrig)copyText("PUNTO DE OBSERVACIÓN (ORIGEN)\n"+geoTxt(lastOrig.lat,lastOrig.lon)+"\n"+utmTxt(lastOrig.lat,lastOrig.lon),b);
   else if(k==="t"&&last)copyText("OBJETIVO\n"+geoTxt(last.t.lat,last.t.lon)+"\n"+utmTxt(last.t.lat,last.t.lon),b);
   else if(k==="all")copyAllTo(b);
 }));
