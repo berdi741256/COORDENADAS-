@@ -1,4 +1,4 @@
-const CACHE="coordenadas-v2", TILES="coordenadas-mapas";
+const CACHE="coordenadas-v3", TILES="coordenadas-mapas";
 const FILES=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./icon-maskable-512.png","./vendor/maplibre-gl.js","./vendor/maplibre-gl.css"];
 const TILE_HOSTS=["server.arcgisonline.com","tile.opentopomap.org","s3.amazonaws.com"];
 const MAX_TILES=4000;
@@ -16,5 +16,10 @@ self.addEventListener("fetch",e=>{
     }));
     return;
   }
-  e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request).catch(()=>caches.match("./index.html"))));
+  if(e.request.mode==="navigate"||u.pathname.endsWith("/index.html")){
+    e.respondWith(fetch(e.request).then(r=>{if(r.ok){const c=r.clone();caches.open(CACHE).then(x=>x.put("./index.html",c));}return r;})
+      .catch(()=>caches.match("./index.html")));
+    return;
+  }
+  e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request)));
 });
