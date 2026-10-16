@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2C5A86">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Coordenadas">
+<title>Conversor de Coordenadas Polares</title>
+<style>
+*{box-sizing:border-box}[hidden]{display:none!important}html{-webkit-text-size-adjust:100%}body{margin:0;padding-top:max(20px,env(safe-area-inset-top))!important}
+/* Layout: una columna de "fichas de campo"; origen → objetivo → resultados en tres bloques; en pantalla ancha origen y objetivo lado a lado */
+:root{
+  --bg:#ECEEE5; --surface:#F8F9F3; --ink:#1D2317; --muted:#5C6553; --line:#C9CFBD;
+  --accent:#2C5A86; --accent-ink:#FFFFFF; --soft:#DDE5EC; --err:#A3341F;
+  --f-display:"Roboto Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:ui-monospace,"Consolas","SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141812; --surface:#1C2118; --ink:#E4E8DA; --muted:#9AA38D; --line:#343C2D;
+  --accent:#86B3DF; --accent-ink:#0F1A24; --soft:#22303C; --err:#E58A72; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141812; --surface:#1C2118; --ink:#E4E8DA; --muted:#9AA38D; --line:#343C2D;
+  --accent:#86B3DF; --accent-ink:#0F1A24; --soft:#22303C; --err:#E58A72; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header h1{font-family:var(--f-display);font-weight:700;font-size:2rem;letter-spacing:.01em;margin:0;line-height:1.05;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.tag{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);letter-spacing:.04em}
+
+.grid2{display:grid;grid-template-columns:1fr;gap:18px}
+@media (min-width:760px){.grid2{grid-template-columns:1fr 1fr}}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card h2{font-family:var(--f-display);font-weight:600;font-size:1.05rem;text-transform:uppercase;letter-spacing:.08em;margin:0;display:flex;align-items:center;gap:8px}
+.card h2 .dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--accent)}
+.card h2 .dot.fill{background:var(--accent)}
+
+.seg{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg button{flex:1;font:600 .9rem var(--f-display);letter-spacing:.06em;text-transform:uppercase;padding:9px 6px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg button:focus-visible,input:focus-visible,select:focus-visible,.copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fields .full{grid-column:1/-1}
+label{display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500;min-width:0}
+input,select{font:500 1rem var(--f-mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:9px 10px;width:100%;box-sizing:border-box;min-width:0}
+.inline{display:flex;gap:6px}
+.inline input{flex:1}
+.inline select{width:auto;flex:0 0 auto}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+.err{color:var(--err);font-size:.85rem;margin:0;min-height:1.2em}
+.echo{font-family:var(--f-mono);font-size:.82rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:10px;overflow-wrap:anywhere}
+
+.results{display:grid;grid-template-columns:1fr;gap:18px}
+@media (min-width:760px){.results{grid-template-columns:repeat(3,1fr)}}
+.res{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.res.src{border-color:var(--accent);box-shadow:inset 0 3px 0 var(--accent)}
+.res h3{margin:0;font-family:var(--f-display);font-weight:600;font-size:1rem;text-transform:uppercase;letter-spacing:.08em;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.res h3 small{font-family:var(--f-body);font-weight:500;font-size:.7rem;letter-spacing:.06em;color:var(--accent)}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:baseline}
+dt{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+dd{margin:0;font-family:var(--f-mono);font-size:.98rem;font-variant-numeric:tabular-nums;text-align:right;overflow-wrap:anywhere}
+dd.big{font-size:1.2rem;font-weight:500}
+.gps{display:flex;align-items:center;justify-content:center;gap:8px;font:600 .95rem var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:var(--soft);border:1px solid var(--accent);border-radius:5px;padding:10px;cursor:pointer}
+.gps:disabled{opacity:.6;cursor:wait}
+.gps:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.gpsmsg:empty{display:none}
+.copy{align-self:flex-start;font:500 .78rem var(--f-body);letter-spacing:.04em;color:var(--accent);background:var(--soft);border:0;border-radius:4px;padding:6px 10px;cursor:pointer}
+
+.diagram{display:flex;justify-content:center}
+.diagram svg{width:100%;max-width:260px;height:auto}
+.note{font-size:.82rem;color:var(--muted);max-width:75ch;margin:0}
+.note b{color:var(--ink);font-weight:600}
+@media (prefers-reduced-motion:no-preference){.res{transition:border-color .2s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="tag">WGS-84 · UTM · AZIMUT / DISTANCIA</div>
+    <h1>Conversor de Coordenadas</h1>
+    <p>Ingresa un punto en geográficas, rectangulares (UTM) o polares, y obtén las otras dos. Las polares se miden desde el punto de origen (estación).</p>
+  </header>
+
+  <div class="grid2">
+    <!-- ORIGEN -->
+    <section class="card" aria-labelledby="h-orig">
+      <h2 id="h-orig"><span class="dot"></span>Punto de origen (estación)</h2>
+      <div class="seg" role="group" aria-label="Formato del origen">
+        <button type="button" data-o="geo" aria-pressed="true">Geográficas</button>
+        <button type="button" data-o="utm" aria-pressed="false">Rectangulares</button>
+      </div>
+      <button type="button" class="gps" id="oGps"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2"/></svg>Usar mi ubicación como origen</button>
+      <p class="hint gpsmsg" id="oGpsMsg"></p>
+      <div class="fields" id="o-geo">
+        <label>Latitud<input id="oLat" inputmode="text" autocomplete="off" value="12°02'46.9&quot; S"></label>
+        <label>Longitud<input id="oLon" inputmode="text" autocomplete="off" value="77°01'50.3&quot; O"></label>
+      </div>
+      <div class="fields" id="o-utm" hidden>
+        <label>Zona<input id="oZone" inputmode="numeric" value="18"></label>
+        <label>Hemisferio<select id="oHem"><option value="S">Sur</option><option value="N">Norte</option></select></label>
+        <label>Este (E) m<input id="oE" inputmode="decimal"></label>
+        <label>Norte (N) m<input id="oN" inputmode="decimal"></label>
+      </div>
+      <p class="err" id="oErr"></p>
+      <div class="echo" id="oEcho"></div>
+    </section>
+
+    <!-- OBJETIVO -->
+    <section class="card" aria-labelledby="h-tgt">
+      <h2 id="h-tgt"><span class="dot fill"></span>Punto a convertir</h2>
+      <div class="seg" role="group" aria-label="Formato de entrada">
+        <button type="button" data-t="geo" aria-pressed="false">Geográficas</button>
+        <button type="button" data-t="utm" aria-pressed="false">Rectangulares</button>
+        <button type="button" data-t="pol" aria-pressed="true">Polares</button>
+      </div>
+      <button type="button" class="gps" id="tGps"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2"/></svg>Convertir mi ubicación actual</button>
+      <p class="hint gpsmsg" id="tGpsMsg"></p>
+      <div class="fields" id="t-geo" hidden>
+        <label>Latitud<input id="tLat" inputmode="text" autocomplete="off"></label>
+        <label>Longitud<input id="tLon" inputmode="text" autocomplete="off"></label>
+        <p class="hint full">Acepta decimal (−12.0464) o grados‑minutos‑segundos (12 02 47 S, 77°01'50" O).</p>
+      </div>
+      <div class="fields" id="t-utm" hidden>
+        <label>Zona<input id="tZone" inputmode="numeric" value="18"></label>
+        <label>Hemisferio<select id="tHem"><option value="S">Sur</option><option value="N">Norte</option></select></label>
+        <label>Este (E) m<input id="tE" inputmode="decimal"></label>
+        <label>Norte (N) m<input id="tN" inputmode="decimal"></label>
+      </div>
+      <div class="fields" id="t-pol">
+        <label class="full">Azimut
+          <span class="inline"><input id="tAz" inputmode="decimal" value="2400"><select id="tAzU" aria-label="Unidad de azimut"><option value="mil">milésimos (6400)</option><option value="deg">grados (360°)</option></select></span>
+        </label>
+        <label class="full">Distancia
+          <span class="inline"><input id="tDist" inputmode="decimal" value="5000"><select id="tDistU" aria-label="Unidad de distancia"><option value="m">metros</option><option value="km">kilómetros</option></select></span>
+        </label>
+      </div>
+      <p class="err" id="tErr"></p>
+      <p class="hint">Valores de ejemplo cargados: origen en la Plaza de Armas de Lima, azimut 2400 mils a 5 km.</p>
+    </section>
+  </div>
+
+  <div class="results">
+    <section class="res" id="r-geo">
+      <h3>Geográficas <small></small></h3>
+      <dl>
+        <dt>Latitud</dt><dd class="big" id="gLat">—</dd>
+        <dt>Longitud</dt><dd class="big" id="gLon">—</dd>
+        <dt>Lat dec.</dt><dd id="gLatD">—</dd>
+        <dt>Lon dec.</dt><dd id="gLonD">—</dd>
+      </dl>
+      <button type="button" class="copy" data-copy="geo">Copiar</button>
+    </section>
+    <section class="res" id="r-utm">
+      <h3>Rectangulares UTM <small></small></h3>
+      <dl>
+        <dt>Zona</dt><dd class="big" id="uZone">—</dd>
+        <dt>Este (E)</dt><dd class="big" id="uE">—</dd>
+        <dt>Norte (N)</dt><dd class="big" id="uN">—</dd>
+        <dt>Hemisferio</dt><dd id="uHem">—</dd>
+      </dl>
+      <button type="button" class="copy" data-copy="utm">Copiar</button>
+    </section>
+    <section class="res" id="r-pol">
+      <h3>Polares <small></small></h3>
+      <dl>
+        <dt>Azimut</dt><dd class="big" id="pMil">—</dd>
+        <dt>Azimut</dt><dd id="pDeg">—</dd>
+        <dt>Distancia</dt><dd class="big" id="pDist">—</dd>
+        <dt>Contraazimut</dt><dd id="pBack">—</dd>
+        <dt>ΔE / ΔN</dt><dd id="pDelta">—</dd>
+      </dl>
+      <div class="diagram"><svg id="svg" viewBox="0 0 260 260" role="img" aria-label="Esquema del azimut desde el origen"></svg></div>
+      <button type="button" class="copy" data-copy="pol">Copiar</button>
+    </section>
+  </div>
+
+  <p class="note"><b>Notas.</b> Elipsoide WGS‑84, proyección UTM (k₀ = 0.9996). El azimut polar es <b>azimut de cuadrícula</b>, medido desde el Norte de cuadrícula en sentido horario; la distancia es la distancia de cuadrícula entre ambos puntos. Si el punto cae en otra zona UTM, las polares se calculan extendiendo la zona del origen. Perú ocupa las zonas 17, 18 y 19 Sur.</p>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const D2R=Math.PI/180, R2D=180/Math.PI;
+
+/* ---------- UTM (series de Krüger, WGS-84) ---------- */
+const a=6378137, f=1/298.257223563, k0=0.9996;
+const n=f/(2-f), n2=n*n, n3=n2*n;
+const A=a/(1+n)*(1+n2/4+n2*n2/64);
+const al=[n/2-2*n2/3+5*n3/16, 13*n2/48-3*n3/5, 61*n3/240];
+const be=[n/2-2*n2/3+37*n3/96, n2/48+n3/15, 17*n3/480];
+const de=[2*n-2*n2/3-2*n3, 7*n2/3-8*n3/5, 56*n3/15];
+const c2=2*Math.sqrt(n)/(1+n);
+
+function zoneOf(lon){return Math.min(60,Math.floor((lon+180)/6)+1);}
+function band(lat){return "CDEFGHJKLMNPQRSTUVWXX".charAt(Math.max(0,Math.min(20,Math.floor((lat+80)/8))));}
+function toUTM(lat,lon,zone,south){
+  zone=zone||zoneOf(lon); if(south===undefined) south=lat<0;
+  const lam0=((zone-1)*6-180+3)*D2R, phi=lat*D2R, dl=lon*D2R-lam0;
+  const s=Math.sin(phi);
+  const t=Math.sinh(Math.atanh(s)-c2*Math.atanh(c2*s));
+  const xi=Math.atan2(t,Math.cos(dl)), eta=Math.atanh(Math.sin(dl)/Math.sqrt(1+t*t));
+  let E=eta, N=xi;
+  for(let j=1;j<=3;j++){E+=al[j-1]*Math.cos(2*j*xi)*Math.sinh(2*j*eta);N+=al[j-1]*Math.sin(2*j*xi)*Math.cosh(2*j*eta);}
+  return {zone,south,E:500000+k0*A*E,N:(south?10000000:0)+k0*A*N};
+}
+function fromUTM(zone,south,E,N){
+  const xi=(N-(south?10000000:0))/(k0*A), eta=(E-500000)/(k0*A);
+  let xp=xi, ep=eta;
+  for(let j=1;j<=3;j++){xp-=be[j-1]*Math.sin(2*j*xi)*Math.cosh(2*j*eta);ep-=be[j-1]*Math.cos(2*j*xi)*Math.sinh(2*j*eta);}
+  const chi=Math.asin(Math.sin(xp)/Math.cosh(ep));
+  let phi=chi; for(let j=1;j<=3;j++) phi+=de[j-1]*Math.sin(2*j*chi);
+  const lam0=((zone-1)*6-180+3)*D2R;
+  return {lat:phi*R2D, lon:(lam0+Math.atan2(Math.sinh(ep),Math.cos(xp)))*R2D};
+}
+
+/* ---------- parsing / formato ---------- */
+function num(s){if(s==null)return NaN;s=String(s).trim().replace(/\s/g,"").replace(",",".");return s===""?NaN:Number(s);}
+function parseAngle(str,kind){
+  if(!str||!str.trim()) throw "vacío";
+  let s=str.trim().toUpperCase().replace(/,/g,".");
+  let sign=1;
+  if(/[SWO]\s*$|^[SWO]/.test(s)) sign=-1;
+  if(kind==="lat"&&/[EWO]/.test(s.replace(/^\s*-/,""))) throw "use N o S para la latitud";
+  if(kind==="lon"&&/[NS]/.test(s)) throw "use E u O para la longitud";
+  if(/^\s*-/.test(s)) sign=-sign;
+  const parts=s.match(/\d+(?:\.\d+)?/g);
+  if(!parts||parts.length>3) throw "formato no reconocido";
+  const [d,m=0,sec=0]=parts.map(Number);
+  if(parts.length>1&&(m>=60||sec>=60)) throw "minutos y segundos deben ser menores que 60";
+  const v=sign*(d+m/60+sec/3600);
+  if(kind==="lat"&&Math.abs(v)>84) throw "latitud fuera de rango UTM (±84°)";
+  if(kind==="lon"&&Math.abs(v)>180) throw "longitud fuera de rango (±180°)";
+  return v;
+}
+function dms(v,pos,neg){
+  const h=v<0?neg:pos; v=Math.abs(v);
+  let d=Math.floor(v), m=Math.floor((v-d)*60), s=((v-d)*60-m)*60;
+  s=Math.round(s*100)/100; if(s>=60){s=0;m++;} if(m>=60){m=0;d++;}
+  return d+"°"+String(m).padStart(2,"0")+"'"+s.toFixed(2).padStart(5,"0")+'" '+h;
+}
+const fm=(x,d=2)=>x.toLocaleString("es-PE",{minimumFractionDigits:d,maximumFractionDigits:d});
+const norm360=x=>((x%360)+360)%360;
+function degDMS(v){v=norm360(v);let d=Math.floor(v),m=Math.floor((v-d)*60),s=Math.round(((v-d)*60-m)*60);if(s===60){s=0;m++;}if(m===60){m=0;d=(d+1)%360;}return d+"°"+String(m).padStart(2,"0")+"'"+String(s).padStart(2,"0")+'"';}
+
+/* ---------- estado ---------- */
+let oMode="geo", tMode="pol", last=null, lastOrig=null;
+function store(){try{localStorage.setItem("convcoord",JSON.stringify({azU:$("tAzU").value,dU:$("tDistU").value}));}catch(e){}}
+try{const s=JSON.parse(localStorage.getItem("convcoord")||"null");if(s){$("tAzU").value=s.azU||"mil";$("tDistU").value=s.dU||"m";}}catch(e){}
+
+function readOrigin(){
+  if(oMode==="geo"){
+    let lat,lon;
+    try{lat=parseAngle($("oLat").value,"lat");}catch(e){throw "Latitud del origen: "+e;}
+    try{lon=parseAngle($("oLon").value,"lon");}catch(e){throw "Longitud del origen: "+e;}
+    return {lat,lon,utm:toUTM(lat,lon)};
+  }
+  const z=parseInt($("oZone").value,10), south=$("oHem").value==="S", E=num($("oE").value), N=num($("oN").value);
+  if(!(z>=1&&z<=60)) throw "Zona del origen: entre 1 y 60";
+  if(!isFinite(E)||!isFinite(N)) throw "Ingresa Este y Norte del origen";
+  const g=fromUTM(z,south,E,N);
+  return {lat:g.lat,lon:g.lon,utm:{zone:z,south,E,N}};
+}
+function readTarget(o){
+  if(tMode==="geo"){
+    let lat,lon;
+    try{lat=parseAngle($("tLat").value,"lat");}catch(e){throw "Latitud: "+e;}
+    try{lon=parseAngle($("tLon").value,"lon");}catch(e){throw "Longitud: "+e;}
+    return {lat,lon};
+  }
+  if(tMode==="utm"){
+    const z=parseInt($("tZone").value,10), south=$("tHem").value==="S", E=num($("tE").value), N=num($("tN").value);
+    if(!(z>=1&&z<=60)) throw "Zona: entre 1 y 60";
+    if(!isFinite(E)||!isFinite(N)) throw "Ingresa Este y Norte";
+    return fromUTM(z,south,E,N);
+  }
+  let az=$("tAzU").value==="mil"?num($("tAz").value)*360/6400:(()=>{try{return parseAngle($("tAz").value,"az");}catch(e){return NaN;}})();
+  let d=num($("tDist").value)*($("tDistU").value==="km"?1000:1);
+  if(!isFinite(az)) throw "Azimut no válido";
+  if(!isFinite(d)||d<0) throw "Distancia no válida";
+  const u=o.utm, E=u.E+d*Math.sin(az*D2R), N=u.N+d*Math.cos(az*D2R);
+  return fromUTM(u.zone,u.south,E,N);
+}
+
+function compute(){
+  $("oErr").textContent="";$("tErr").textContent="";
+  let o;
+  try{o=readOrigin();}catch(e){$("oErr").textContent=e;$("oEcho").textContent="";clear();return;}
+  lastOrig=o;
+  $("oEcho").textContent= oMode==="geo"
+    ? "UTM "+o.utm.zone+band(o.lat)+"  E "+fm(o.utm.E)+"  N "+fm(o.utm.N)
+    : dms(o.lat,"N","S")+"   "+dms(o.lon,"E","O");
+  let t;
+  try{t=readTarget(o);}catch(e){$("tErr").textContent=e;clear();return;}
+  if(Math.abs(t.lat)>84){$("tErr").textContent="El punto resultante queda fuera del rango UTM.";clear();return;}
+  const u=toUTM(t.lat,t.lon);
+  const uf=toUTM(t.lat,t.lon,o.utm.zone,o.utm.south);
+  const dE=uf.E-o.utm.E, dN=uf.N-o.utm.N, dist=Math.hypot(dE,dN);
+  const az=dist<1e-6?0:norm360(Math.atan2(dE,dN)*R2D);
+  last={t,u,az,dist,dE,dN,zoneDiff:u.zone!==o.utm.zone};
+
+  $("gLat").textContent=dms(t.lat,"N","S");$("gLon").textContent=dms(t.lon,"E","O");
+  $("gLatD").textContent=t.lat.toFixed(6)+"°";$("gLonD").textContent=t.lon.toFixed(6)+"°";
+  $("uZone").textContent=u.zone+band(t.lat);$("uE").textContent=fm(u.E);$("uN").textContent=fm(u.N);
+  $("uHem").textContent=u.south?"Sur":"Norte";
+  const mil=az*6400/360, back=norm360(az+180);
+  $("pMil").textContent=fm(mil,1)+" mils";
+  $("pDeg").textContent=fm(az,4)+"°  ("+degDMS(az)+")";
+  $("pDist").textContent=dist>=1000?fm(dist,1)+" m  ("+fm(dist/1000,3)+" km)":fm(dist,1)+" m";
+  $("pBack").textContent=fm(back*6400/360,1)+" mils · "+fm(back,2)+"°";
+  $("pDelta").textContent=(dE>=0?"+":"")+fm(dE,1)+" / "+(dN>=0?"+":"")+fm(dN,1);
+  ["geo","utm","pol"].forEach(k=>{const r=$("r-"+k);const on=k===tMode;r.classList.toggle("src",on);r.querySelector("h3 small").textContent=on?"entrada":"";});
+  if(last.zoneDiff) $("tErr").textContent="Aviso: el punto está en la zona "+u.zone+"; las polares usan la zona "+o.utm.zone+" del origen.";
+  draw(az,dist);
+}
+function clear(){last=null;["gLat","gLon","gLatD","gLonD","uZone","uE","uN","uHem","pMil","pDeg","pDist","pBack","pDelta"].forEach(i=>$(i).textContent="—");$("svg").innerHTML="";}
+
+/* ---------- esquema ---------- */
+function draw(az,dist){
+  const cx=130,cy=135,r=95,ra=38,s=Math.sin(az*D2R),c=Math.cos(az*D2R);
+  const x=cx+r*s,y=cy-r*c, ax=cx+ra*s, ay=cy-ra*c, large=az>180?1:0;
+  const lx=cx+(ra+16)*Math.sin(az/2*D2R), ly=cy-(ra+16)*Math.cos(az/2*D2R);
+  const mx=(cx+x)/2, my=(cy+y)/2;
+  const arc=az<0.05?"":`<path d="M${cx} ${cy-ra} A${ra} ${ra} 0 ${large} 1 ${ax.toFixed(1)} ${ay.toFixed(1)}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+  $("svg").innerHTML=`
+  <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--line)" stroke-dasharray="3 4"/>
+  <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy-r-6}" stroke="var(--muted)" stroke-width="1.5"/>
+  <path d="M${cx} ${cy-r-14} l-5 10 h10z" fill="var(--muted)"/>
+  <text x="${cx+8}" y="${cy-r-6}" font-family="Arial Narrow,Arial,sans-serif" font-size="12" fill="var(--muted)">Nc</text>
+  ${arc}
+  <line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--ink)" stroke-width="2"/>
+  <circle cx="${cx}" cy="${cy}" r="5" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>
+  <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="var(--accent)"/>
+  <text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-family="Consolas,Menlo,monospace" font-size="10" fill="var(--accent)">${Math.round(az*6400/360)}</text>
+  <text x="${(mx+8*c).toFixed(1)}" y="${(my+8*s).toFixed(1)}" text-anchor="middle" font-family="Consolas,Menlo,monospace" font-size="10" fill="var(--ink)" transform="rotate(${(az>180?az-270:az-90).toFixed(1)} ${(mx+8*c).toFixed(1)} ${(my+8*s).toFixed(1)})">${dist>=1000?fm(dist/1000,2)+" km":fm(dist,0)+" m"}</text>`;
+}
+
+/* ---------- pestañas: precargan con el último resultado ---------- */
+document.querySelectorAll("[data-o]").forEach(b=>b.addEventListener("click",()=>{
+  const m=b.dataset.o; if(m===oMode)return;
+  if(lastOrig){
+    if(m==="utm"){$("oZone").value=lastOrig.utm.zone;$("oHem").value=lastOrig.utm.south?"S":"N";$("oE").value=lastOrig.utm.E.toFixed(2);$("oN").value=lastOrig.utm.N.toFixed(2);}
+    else{$("oLat").value=dms(lastOrig.lat,"N","S");$("oLon").value=dms(lastOrig.lon,"E","O");}
+  }
+  oMode=m;
+  document.querySelectorAll("[data-o]").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  $("o-geo").hidden=m!=="geo";$("o-utm").hidden=m!=="utm";compute();
+}));
+document.querySelectorAll("[data-t]").forEach(b=>b.addEventListener("click",()=>{
+  const m=b.dataset.t; if(m===tMode)return;
+  if(last){
+    if(m==="geo"){$("tLat").value=dms(last.t.lat,"N","S");$("tLon").value=dms(last.t.lon,"E","O");}
+    if(m==="utm"){$("tZone").value=last.u.zone;$("tHem").value=last.u.south?"S":"N";$("tE").value=last.u.E.toFixed(2);$("tN").value=last.u.N.toFixed(2);}
+    if(m==="pol"){$("tAz").value=$("tAzU").value==="mil"?(last.az*6400/360).toFixed(1):last.az.toFixed(4);$("tDist").value=$("tDistU").value==="km"?(last.dist/1000).toFixed(3):last.dist.toFixed(1);}
+  }
+  tMode=m;
+  document.querySelectorAll("[data-t]").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  ["geo","utm","pol"].forEach(k=>$("t-"+k).hidden=k!==m);compute();
+}));
+$("tAzU").addEventListener("change",()=>{ if(last){$("tAz").value=$("tAzU").value==="mil"?(last.az*6400/360).toFixed(1):last.az.toFixed(4);} store();compute();});
+$("tDistU").addEventListener("change",()=>{ if(last){$("tDist").value=$("tDistU").value==="km"?(last.dist/1000).toFixed(3):last.dist.toFixed(1);} store();compute();});
+document.querySelectorAll("input,select").forEach(el=>el.addEventListener("input",compute));
+
+/* ---------- GPS ---------- */
+function gps(btn,msg,cb){
+  if(!("geolocation" in navigator)){msg.textContent="Este navegador no permite acceder al GPS.";return;}
+  if(window.isSecureContext===false){msg.textContent="El GPS solo funciona con la app instalada o abierta desde https.";return;}
+  msg.textContent="Obteniendo posición… (a cielo abierto es más rápido)";btn.disabled=true;
+  navigator.geolocation.getCurrentPosition(p=>{
+    btn.disabled=false;const c=p.coords;cb(c.latitude,c.longitude);
+    msg.textContent="GPS: precisión ±"+Math.round(c.accuracy)+" m · "+new Date(p.timestamp).toLocaleTimeString("es-PE");
+  },e=>{
+    btn.disabled=false;
+    msg.textContent=e.code===1?"Permiso de ubicación denegado. Actívalo en los ajustes del navegador o de la app."
+      :e.code===3?"Tiempo agotado sin señal. Sal a cielo abierto e inténtalo otra vez."
+      :"No se pudo obtener la posición. Verifica que la ubicación del dispositivo esté encendida.";
+  },{enableHighAccuracy:true,timeout:45000,maximumAge:0});
+}
+$("oGps").addEventListener("click",()=>gps($("oGps"),$("oGpsMsg"),(la,lo)=>{
+  if(oMode!=="geo") document.querySelector('[data-o="geo"]').click();
+  $("oLat").value=dms(la,"N","S");$("oLon").value=dms(lo,"E","O");compute();}));
+$("tGps").addEventListener("click",()=>gps($("tGps"),$("tGpsMsg"),(la,lo)=>{
+  if(tMode!=="geo") document.querySelector('[data-t="geo"]').click();
+  $("tLat").value=dms(la,"N","S");$("tLon").value=dms(lo,"E","O");compute();}));
+
+/* ---------- copiar ---------- */
+document.querySelectorAll(".copy").forEach(b=>b.addEventListener("click",()=>{
+  if(!last)return;
+  const k=b.dataset.copy;
+  const txt=k==="geo"?$("gLat").textContent+", "+$("gLon").textContent+" ("+last.t.lat.toFixed(6)+", "+last.t.lon.toFixed(6)+")"
+    :k==="utm"?"UTM "+$("uZone").textContent+" E "+last.u.E.toFixed(2)+" N "+last.u.N.toFixed(2)
+    :"Az "+(last.az*6400/360).toFixed(1)+" mils ("+last.az.toFixed(4)+"°), Dist "+last.dist.toFixed(1)+" m";
+  const done=()=>{b.textContent="Copiado";setTimeout(()=>b.textContent="Copiar",1400);};
+  try{navigator.clipboard.writeText(txt).then(done,()=>{b.textContent=txt;});}catch(e){b.textContent=txt;}
+}));
+
+compute();
+})();
+</script>
+<script>if("serviceWorker" in navigator){addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}</script>
+</body>
+</html>
