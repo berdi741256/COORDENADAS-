@@ -92,7 +92,8 @@ dd.big{font-size:1.2rem;font-weight:500}
 .mappanel .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0}
 .mappanel .seg{flex:1;min-width:0}
 .mappanel .seg button{font-size:.82rem;padding:8px 4px}
-.mappanel label{flex-direction:row;align-items:center;gap:8px;flex:1}
+.mappanel label{flex-direction:row;align-items:center;gap:8px;flex:1 1 100%}
+@media (min-width:600px){.mappanel label{flex-basis:200px}}
 .mappanel input[type=range]{padding:0;border:0;background:transparent;flex:1}
 .mapinfo{font-family:var(--f-mono);font-size:.88rem;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
 .mapinfo .k{color:var(--muted);font-family:var(--f-body);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}
@@ -100,6 +101,13 @@ dd.big{font-size:1.2rem;font-weight:500}
 .mk::after{content:"";position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff}
 .mk.o{background:#1F4E7A}.mk.t{background:#8E1F1F}.mk.me{background:#2F6B3A}
 .mklbl{font:600 .78rem var(--f-mono);background:rgba(20,26,16,.82);color:#F2D27A;padding:3px 7px;border-radius:4px;white-space:nowrap;pointer-events:none}
+.mappts{grid-column:1/-1;display:grid;grid-template-columns:1fr;gap:8px}
+@media (min-width:600px){.mappts{grid-template-columns:1fr 1fr}}
+.pt{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:5px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;font-family:var(--f-mono);font-size:.86rem;font-variant-numeric:tabular-nums;min-width:0;overflow-wrap:anywhere}
+.pt.o{--c:#1F4E7A}.pt.t{--c:#8E1F1F}.pt.p{--c:#B8892B;grid-column:1/-1}
+.pt .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;font:700 .85rem var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:var(--c)}
+.pt.p .hd{color:var(--ink)}
+.pt .hd button{font:500 .75rem var(--f-body);letter-spacing:.03em;text-transform:none;color:var(--accent);background:var(--soft);border:0;border-radius:4px;padding:5px 9px;cursor:pointer}
 .maplibregl-ctrl-attrib{font-size:10px}
 .copy{align-self:flex-start;font:500 .78rem var(--f-body);letter-spacing:.04em;color:var(--accent);background:var(--soft);border:0;border-radius:4px;padding:6px 10px;cursor:pointer}
 
@@ -223,7 +231,7 @@ dd.big{font-size:1.2rem;font-weight:500}
       <div class="row">
         <div class="seg" role="group" aria-label="Qué marcar al tocar el mapa">
           <button type="button" data-mm="origin" aria-pressed="false">Marcar origen</button>
-          <button type="button" data-mm="target" aria-pressed="true">Marcar punto</button>
+          <button type="button" data-mm="target" aria-pressed="true">Marcar objetivo</button>
           <button type="button" data-mm="info" aria-pressed="false">Solo consultar</button>
         </div>
       </div>
@@ -238,6 +246,11 @@ dd.big{font-size:1.2rem;font-weight:500}
         <label for="exag">Exageración<input type="range" id="exag" min="0" max="3" step="0.1" value="1.2"></label>
         <button type="button" class="btn ghost" id="map3d">Vista 2D</button>
         <button type="button" class="btn ghost" id="mapGps">Mi ubicación</button>
+      </div>
+      <div class="mappts">
+        <div class="pt o"><div class="hd">Origen<button type="button" data-cp="o">Copiar</button></div><span id="mpO1">—</span><span id="mpO2"></span><span id="mpO3"></span></div>
+        <div class="pt t"><div class="hd">Objetivo<button type="button" data-cp="t">Copiar</button></div><span id="mpT1">—</span><span id="mpT2"></span><span id="mpT3"></span></div>
+        <div class="pt p"><div class="hd">Polares origen → objetivo<button type="button" data-cp="all">Copiar todo</button></div><span id="mpP">—</span></div>
       </div>
       <div class="row">
         <div class="mapinfo" id="mapInfo"><span class="k">Toca el mapa para ver sus coordenadas</span></div>
@@ -469,12 +482,13 @@ document.querySelectorAll(".copy").forEach(b=>b.addEventListener("click",()=>{
   if(!last)return;const k=b.dataset.copy;
   copyText(k==="geo"?geoTxt(last.t.lat,last.t.lon):k==="utm"?utmTxt(last.t.lat,last.t.lon):polTxt(),b);
 }));
-$("copyAll").addEventListener("click",()=>{
+function copyAllTo(btn){
   if(!last||!lastOrig){$("tErr").textContent="Completa los datos para poder copiar.";return;}
   copyText("ORIGEN\n  "+geoTxt(lastOrig.lat,lastOrig.lon)+"\n  "+utmTxt(lastOrig.lat,lastOrig.lon)+
-    "\nPUNTO\n  "+geoTxt(last.t.lat,last.t.lon)+"\n  "+utmTxt(last.t.lat,last.t.lon)+
-    "\nPOLARES (desde el origen)\n  "+polTxt()+"\n  Contraazimut "+(norm360(last.az+180)*6400/360).toFixed(1)+" mils",$("copyAll"));
-});
+    "\nOBJETIVO\n  "+geoTxt(last.t.lat,last.t.lon)+"\n  "+utmTxt(last.t.lat,last.t.lon)+
+    "\nPOLARES (desde el origen)\n  "+polTxt()+"\n  Contraazimut "+(norm360(last.az+180)*6400/360).toFixed(1)+" mils",btn);
+}
+$("copyAll").addEventListener("click",()=>copyAllTo($("copyAll")));
 
 /* ---------- fijar puntos (GPS y mapa) ---------- */
 function setOrigin(la,lo){if(oMode!=="geo")document.querySelector('[data-o="geo"]').click();$("oLat").value=dms(la,"N","S");$("oLon").value=dms(lo,"E","O");compute();}
@@ -508,29 +522,39 @@ function initMap(){
   map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
   map.addControl(new maplibregl.ScaleControl({unit:"metric"}),"bottom-left");
   map.on("load",()=>{mapReady=true;map.setTerrain({source:"dem",exaggeration:+$("exag").value});syncMap(true);});
+  map.on("idle",fillPts);
   map.on("click",e=>pick(e.lngLat.lat,e.lngLat.lng,true));
 }
-function cota(la,lo){try{const h=map.queryTerrainElevation([lo,la]);const ex=map.getTerrain()?.exaggeration||1;return h==null||!ex?null:h/ex;}catch(e){return null;}}
+function cota(la,lo){try{const h=map.queryTerrainElevation([lo,la]);const ex=map.getTerrain()?.exaggeration||1;return h==null||!ex||h===0?null:h/ex;}catch(e){return null;}}
 function pick(la,lo,apply){
   picked={la,lo};
   const h=cota(la,lo);
-  $("mapInfo").innerHTML='<span class="k">'+(mapMode==="origin"&&apply?"Origen marcado":mapMode==="target"&&apply?"Punto marcado":"Punto consultado")+'</span>'+
+  $("mapInfo").innerHTML='<span class="k">'+(mapMode==="origin"&&apply?"Origen marcado":mapMode==="target"&&apply?"Objetivo marcado":"Punto consultado")+'</span>'+
     '<span>'+dms(la,"N","S")+"  "+dms(lo,"E","O")+'</span><span>'+utmTxt(la,lo)+'</span>'+(h!=null?'<span>Cota ≈ '+Math.round(h)+' m</span>':'');
   $("mapCopy").hidden=false;
   if(apply&&mapMode==="origin")setOrigin(la,lo);
   if(apply&&mapMode==="target")setTarget(la,lo);
 }
+function fillPts(){
+  const ct=(la,lo)=>{if(!map||!mapReady)return "";const h=cota(la,lo);return h==null?"":"Cota ≈ "+Math.round(h)+" m";};
+  if(lastOrig){$("mpO1").textContent=dms(lastOrig.lat,"N","S")+"  "+dms(lastOrig.lon,"E","O");$("mpO2").textContent=utmTxt(lastOrig.lat,lastOrig.lon);$("mpO3").textContent=ct(lastOrig.lat,lastOrig.lon);}
+  else{$("mpO1").textContent="—";$("mpO2").textContent="";$("mpO3").textContent="";}
+  if(last){$("mpT1").textContent=dms(last.t.lat,"N","S")+"  "+dms(last.t.lon,"E","O");$("mpT2").textContent=utmTxt(last.t.lat,last.t.lon);$("mpT3").textContent=ct(last.t.lat,last.t.lon);
+    $("mpP").textContent="Az "+fm(last.az*6400/360,1)+" mils ("+fm(last.az,2)+"°) · Dist "+(last.dist>=1000?fm(last.dist/1000,3)+" km":fm(last.dist,1)+" m")+" · Contraaz "+fm(norm360(last.az+180)*6400/360,1)+" mils";}
+  else{$("mpT1").textContent="—";$("mpT2").textContent="";$("mpT3").textContent="";$("mpP").textContent="—";}
+}
 function syncMap(fit){
+  fillPts();
   if(!map||!mapReady)return;
   const pts=[];
   if(lastOrig){
-    if(!mkO){mkO=new maplibregl.Marker({element:mkEl("o","ORIGEN"),anchor:"bottom",draggable:true}).setLngLat([lastOrig.lon,lastOrig.lat]).addTo(map);
+    if(!mkO){mkO=new maplibregl.Marker({element:mkEl("o","ORIGEN"),anchor:"bottom",draggable:true,opacity:"1",opacityWhenCovered:"1"}).setLngLat([lastOrig.lon,lastOrig.lat]).addTo(map);
       mkO.on("dragend",()=>{const p=mkO.getLngLat();pick(p.lat,p.lng,false);setOrigin(p.lat,p.lng);});}
     else mkO.setLngLat([lastOrig.lon,lastOrig.lat]);
     pts.push([lastOrig.lon,lastOrig.lat]);
   }
   if(last){
-    if(!mkT){mkT=new maplibregl.Marker({element:mkEl("t","PUNTO"),anchor:"bottom",draggable:true}).setLngLat([last.t.lon,last.t.lat]).addTo(map);
+    if(!mkT){mkT=new maplibregl.Marker({element:mkEl("t","OBJETIVO"),anchor:"bottom",draggable:true,opacity:"1",opacityWhenCovered:"1"}).setLngLat([last.t.lon,last.t.lat]).addTo(map);
       mkT.on("dragend",()=>{const p=mkT.getLngLat();pick(p.lat,p.lng,false);setTarget(p.lat,p.lng);});}
     else mkT.setLngLat([last.t.lon,last.t.lat]);
     pts.push([last.t.lon,last.t.lat]);
@@ -540,7 +564,7 @@ function syncMap(fit){
     src.setData({type:"Feature",geometry:{type:"LineString",coordinates:pts}});
     const mid=[(pts[0][0]+pts[1][0])/2,(pts[0][1]+pts[1][1])/2];
     const txt=Math.round(last.az*6400/360)+" mils · "+(last.dist>=1000?fm(last.dist/1000,2)+" km":fm(last.dist,0)+" m");
-    if(!mkLbl){const e=document.createElement("div");e.className="mklbl";mkLbl=new maplibregl.Marker({element:e}).setLngLat(mid).addTo(map);}
+    if(!mkLbl){const e=document.createElement("div");e.className="mklbl";mkLbl=new maplibregl.Marker({element:e,opacity:"1",opacityWhenCovered:"1"}).setLngLat(mid).addTo(map);}
     mkLbl.setLngLat(mid);mkLbl.getElement().textContent=txt;
   }else{src.setData({type:"FeatureCollection",features:[]});if(mkLbl){mkLbl.remove();mkLbl=null;}}
   if(fit&&pts.length===2&&last.dist>1){const b=new maplibregl.LngLatBounds(pts[0],pts[0]);b.extend(pts[1]);map.fitBounds(b,{padding:80,maxZoom:17,duration:0});}
@@ -563,13 +587,19 @@ document.querySelectorAll("[data-mm]").forEach(b=>b.addEventListener("click",()=
 document.querySelectorAll("[data-ml]").forEach(b=>b.addEventListener("click",()=>{setLayer(b.dataset.ml);document.querySelectorAll("[data-ml]").forEach(x=>x.setAttribute("aria-pressed",x===b));}));
 $("exag").addEventListener("input",()=>{if(map&&mapReady)map.setTerrain(+$("exag").value>0?{source:"dem",exaggeration:+$("exag").value}:null);});
 $("map3d").addEventListener("click",()=>{is3d=!is3d;$("map3d").textContent=is3d?"Vista 2D":"Vista 3D";if(map)map.easeTo({pitch:is3d?55:0,bearing:is3d?map.getBearing():0});});
+document.querySelectorAll("[data-cp]").forEach(b=>b.addEventListener("click",()=>{
+  const k=b.dataset.cp;
+  if(k==="o"&&lastOrig)copyText("ORIGEN\n"+geoTxt(lastOrig.lat,lastOrig.lon)+"\n"+utmTxt(lastOrig.lat,lastOrig.lon),b);
+  else if(k==="t"&&last)copyText("OBJETIVO\n"+geoTxt(last.t.lat,last.t.lon)+"\n"+utmTxt(last.t.lat,last.t.lon),b);
+  else if(k==="all")copyAllTo(b);
+}));
 $("mapCopy").addEventListener("click",()=>{if(picked)copyText(geoTxt(picked.la,picked.lo)+"\n"+utmTxt(picked.la,picked.lo),$("mapCopy"));});
 $("mapGps").addEventListener("click",()=>{
   const b=$("mapGps");if(!navigator.geolocation||window.isSecureContext===false){$("mapInfo").innerHTML='<span class="k">GPS no disponible en este navegador.</span>';return;}
   b.textContent="Buscando…";
   navigator.geolocation.getCurrentPosition(p=>{
     b.textContent="Mi ubicación";const la=p.coords.latitude,lo=p.coords.longitude;
-    if(map){if(!mkMe)mkMe=new maplibregl.Marker({element:mkEl("me","YO"),anchor:"bottom"}).setLngLat([lo,la]).addTo(map);else mkMe.setLngLat([lo,la]);map.flyTo({center:[lo,la],zoom:Math.max(map.getZoom(),15)});}
+    if(map){if(!mkMe)mkMe=new maplibregl.Marker({element:mkEl("me","YO"),anchor:"bottom",opacity:"1",opacityWhenCovered:"1"}).setLngLat([lo,la]).addTo(map);else mkMe.setLngLat([lo,la]);map.flyTo({center:[lo,la],zoom:Math.max(map.getZoom(),15)});}
     pick(la,lo,mapMode!=="info");
     $("mapInfo").insertAdjacentHTML("beforeend",'<span class="k">GPS ±'+Math.round(p.coords.accuracy)+' m</span>');
   },()=>{b.textContent="Mi ubicación";$("mapInfo").innerHTML='<span class="k">No se pudo obtener el GPS. Revisa el permiso y la ubicación del dispositivo.</span>';},
@@ -579,6 +609,6 @@ $("mapGps").addEventListener("click",()=>{
 compute();
 })();
 </script>
-<script>if("serviceWorker" in navigator){addEventListener("load",()=>navigator.serviceWorker.register("sw.js").then(r=>r.update()).catch(()=>{});let rl=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(!rl){rl=true;location.reload();}}));}</script>
+<script>if("serviceWorker" in navigator){let rl=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(!rl){rl=true;location.reload();}});addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").then(r=>r.update()).catch(()=>{});});}</script>
 </body>
 </html>
