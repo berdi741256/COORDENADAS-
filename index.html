@@ -74,6 +74,33 @@ dd.big{font-size:1.2rem;font-weight:500}
 .gps:disabled{opacity:.6;cursor:wait}
 .gps:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .gpsmsg:empty{display:none}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 .95rem var(--f-display);letter-spacing:.06em;text-transform:uppercase;border-radius:5px;padding:11px 16px;cursor:pointer;border:1px solid var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:var(--soft);color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn svg{flex:0 0 auto}
+
+.mapview{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;background:var(--bg)}
+.mapbar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#23301F;color:#F2D27A;padding:max(10px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left))}
+.mapbar strong{font:700 1.15rem var(--f-display);letter-spacing:.06em;text-transform:uppercase}
+.mapbar button{background:transparent;border:0;color:#F8F4E6;font-size:1.6rem;line-height:1;cursor:pointer;padding:4px 8px}
+#map{flex:1;min-height:0;position:relative}
+.offline{position:absolute;left:12px;right:12px;top:12px;z-index:5;background:#23301F;color:#F2D27A;padding:8px 12px;border-radius:5px;font-size:.85rem}
+.mappanel{background:var(--surface);border-top:1px solid var(--line);padding:12px max(16px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));display:grid;grid-template-columns:1fr;gap:10px;max-height:46vh;overflow-y:auto}
+@media (min-width:820px){.mappanel{grid-template-columns:1fr 1fr}}
+.mappanel .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0}
+.mappanel .seg{flex:1;min-width:0}
+.mappanel .seg button{font-size:.82rem;padding:8px 4px}
+.mappanel label{flex-direction:row;align-items:center;gap:8px;flex:1}
+.mappanel input[type=range]{padding:0;border:0;background:transparent;flex:1}
+.mapinfo{font-family:var(--f-mono);font-size:.88rem;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
+.mapinfo .k{color:var(--muted);font-family:var(--f-body);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}
+.mk{font:700 .78rem var(--f-display);letter-spacing:.08em;color:#fff;padding:4px 8px;border-radius:4px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45);position:relative;cursor:grab;white-space:nowrap}
+.mk::after{content:"";position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff}
+.mk.o{background:#1F4E7A}.mk.t{background:#8E1F1F}.mk.me{background:#2F6B3A}
+.mklbl{font:600 .78rem var(--f-mono);background:rgba(20,26,16,.82);color:#F2D27A;padding:3px 7px;border-radius:4px;white-space:nowrap;pointer-events:none}
+.maplibregl-ctrl-attrib{font-size:10px}
 .copy{align-self:flex-start;font:500 .78rem var(--f-body);letter-spacing:.04em;color:var(--accent);background:var(--soft);border:0;border-radius:4px;padding:6px 10px;cursor:pointer}
 
 .diagram{display:flex;justify-content:center}
@@ -91,6 +118,10 @@ dd.big{font-size:1.2rem;font-weight:500}
     <h1>Conversor de Coordenadas</h1>
     <p>Ingresa un punto en geográficas, rectangulares (UTM) o polares, y obtén las otras dos. Las polares se miden desde el punto de origen (estación).</p>
   </header>
+  <div class="toolbar">
+    <button type="button" class="btn primary" id="openMap"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Abrir mapa</button>
+    <button type="button" class="btn ghost" id="copyAll"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" fill="none" stroke="currentColor" stroke-width="2"/></svg>Copiar todas las coordenadas</button>
+  </div>
 
   <div class="grid2">
     <!-- ORIGEN -->
@@ -183,6 +214,36 @@ dd.big{font-size:1.2rem;font-weight:500}
       <div class="diagram"><svg id="svg" viewBox="0 0 260 260" role="img" aria-label="Esquema del azimut desde el origen"></svg></div>
       <button type="button" class="copy" data-copy="pol">Copiar</button>
     </section>
+  </div>
+
+  <div class="mapview" id="mapView" hidden>
+    <div class="mapbar"><strong>Mapa · Satélite y relieve</strong><button type="button" id="mapClose" aria-label="Cerrar mapa">✕</button></div>
+    <div id="map"><div class="offline" id="mapOffline" hidden>Sin conexión: solo se verán las zonas del mapa que ya visitaste con internet.</div></div>
+    <div class="mappanel">
+      <div class="row">
+        <div class="seg" role="group" aria-label="Qué marcar al tocar el mapa">
+          <button type="button" data-mm="origin" aria-pressed="false">Marcar origen</button>
+          <button type="button" data-mm="target" aria-pressed="true">Marcar punto</button>
+          <button type="button" data-mm="info" aria-pressed="false">Solo consultar</button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="seg" role="group" aria-label="Tipo de mapa">
+          <button type="button" data-ml="sat" aria-pressed="true">Satélite + relieve</button>
+          <button type="button" data-ml="topo" aria-pressed="false">Topográfico</button>
+          <button type="button" data-ml="relief" aria-pressed="false">Relieve</button>
+        </div>
+      </div>
+      <div class="row">
+        <label for="exag">Exageración<input type="range" id="exag" min="0" max="3" step="0.1" value="1.2"></label>
+        <button type="button" class="btn ghost" id="map3d">Vista 2D</button>
+        <button type="button" class="btn ghost" id="mapGps">Mi ubicación</button>
+      </div>
+      <div class="row">
+        <div class="mapinfo" id="mapInfo"><span class="k">Toca el mapa para ver sus coordenadas</span></div>
+        <button type="button" class="btn ghost" id="mapCopy" hidden><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" fill="none" stroke="currentColor" stroke-width="2"/></svg>Copiar</button>
+      </div>
+    </div>
   </div>
 
   <p class="note"><b>Notas.</b> Elipsoide WGS‑84, proyección UTM (k₀ = 0.9996). El azimut polar es <b>azimut de cuadrícula</b>, medido desde el Norte de cuadrícula en sentido horario; la distancia es la distancia de cuadrícula entre ambos puntos. Si el punto cae en otra zona UTM, las polares se calculan extendiendo la zona del origen. Perú ocupa las zonas 17, 18 y 19 Sur.</p>
@@ -322,8 +383,9 @@ function compute(){
   ["geo","utm","pol"].forEach(k=>{const r=$("r-"+k);const on=k===tMode;r.classList.toggle("src",on);r.querySelector("h3 small").textContent=on?"entrada":"";});
   if(last.zoneDiff) $("tErr").textContent="Aviso: el punto está en la zona "+u.zone+"; las polares usan la zona "+o.utm.zone+" del origen.";
   draw(az,dist);
+  syncMap();
 }
-function clear(){last=null;["gLat","gLon","gLatD","gLonD","uZone","uE","uN","uHem","pMil","pDeg","pDist","pBack","pDelta"].forEach(i=>$(i).textContent="—");$("svg").innerHTML="";}
+function clear(){last=null;["gLat","gLon","gLatD","gLonD","uZone","uE","uN","uHem","pMil","pDeg","pDist","pBack","pDelta"].forEach(i=>$(i).textContent="—");$("svg").innerHTML="";syncMap();}
 
 /* ---------- esquema ---------- */
 function draw(az,dist){
@@ -394,15 +456,125 @@ $("tGps").addEventListener("click",()=>gps($("tGps"),$("tGpsMsg"),(la,lo)=>{
   $("tLat").value=dms(la,"N","S");$("tLon").value=dms(lo,"E","O");compute();}));
 
 /* ---------- copiar ---------- */
+function copyText(txt,btn){
+  const ok=()=>{const h=btn.innerHTML;btn.textContent="Copiado ✓";setTimeout(()=>btn.innerHTML=h,1500);};
+  const fallback=()=>{const ta=document.createElement("textarea");ta.value=txt;ta.setAttribute("readonly","");ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();
+    let done=false;try{done=document.execCommand("copy");}catch(e){}ta.remove();done?ok():(btn.textContent="No se pudo copiar");};
+  try{navigator.clipboard.writeText(txt).then(ok,fallback);}catch(e){fallback();}
+}
+function geoTxt(la,lo){return dms(la,"N","S")+", "+dms(lo,"E","O")+" ("+la.toFixed(6)+", "+lo.toFixed(6)+")";}
+function utmTxt(la,lo){const u=toUTM(la,lo);return "UTM "+u.zone+band(la)+" E "+u.E.toFixed(1)+" N "+u.N.toFixed(1);}
+function polTxt(){return "Az "+(last.az*6400/360).toFixed(1)+" mils ("+last.az.toFixed(4)+"°), Dist "+last.dist.toFixed(1)+" m";}
 document.querySelectorAll(".copy").forEach(b=>b.addEventListener("click",()=>{
-  if(!last)return;
-  const k=b.dataset.copy;
-  const txt=k==="geo"?$("gLat").textContent+", "+$("gLon").textContent+" ("+last.t.lat.toFixed(6)+", "+last.t.lon.toFixed(6)+")"
-    :k==="utm"?"UTM "+$("uZone").textContent+" E "+last.u.E.toFixed(2)+" N "+last.u.N.toFixed(2)
-    :"Az "+(last.az*6400/360).toFixed(1)+" mils ("+last.az.toFixed(4)+"°), Dist "+last.dist.toFixed(1)+" m";
-  const done=()=>{b.textContent="Copiado";setTimeout(()=>b.textContent="Copiar",1400);};
-  try{navigator.clipboard.writeText(txt).then(done,()=>{b.textContent=txt;});}catch(e){b.textContent=txt;}
+  if(!last)return;const k=b.dataset.copy;
+  copyText(k==="geo"?geoTxt(last.t.lat,last.t.lon):k==="utm"?utmTxt(last.t.lat,last.t.lon):polTxt(),b);
 }));
+$("copyAll").addEventListener("click",()=>{
+  if(!last||!lastOrig){$("tErr").textContent="Completa los datos para poder copiar.";return;}
+  copyText("ORIGEN\n  "+geoTxt(lastOrig.lat,lastOrig.lon)+"\n  "+utmTxt(lastOrig.lat,lastOrig.lon)+
+    "\nPUNTO\n  "+geoTxt(last.t.lat,last.t.lon)+"\n  "+utmTxt(last.t.lat,last.t.lon)+
+    "\nPOLARES (desde el origen)\n  "+polTxt()+"\n  Contraazimut "+(norm360(last.az+180)*6400/360).toFixed(1)+" mils",$("copyAll"));
+});
+
+/* ---------- fijar puntos (GPS y mapa) ---------- */
+function setOrigin(la,lo){if(oMode!=="geo")document.querySelector('[data-o="geo"]').click();$("oLat").value=dms(la,"N","S");$("oLon").value=dms(lo,"E","O");compute();}
+function setTarget(la,lo){if(tMode!=="geo")document.querySelector('[data-t="geo"]').click();$("tLat").value=dms(la,"N","S");$("tLon").value=dms(lo,"E","O");compute();}
+
+/* ---------- mapa ---------- */
+let mapReady=false,map=null,mkO=null,mkT=null,mkMe=null,mkLbl=null,mapMode="target",is3d=true,picked=null;
+const SAT="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const TOPO=["a","b","c"].map(x=>"https://"+x+".tile.opentopomap.org/{z}/{x}/{y}.png");
+const DEM="https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+function loadLib(){return new Promise((res,rej)=>{
+  if(window.maplibregl)return res();
+  const l=document.createElement("link");l.rel="stylesheet";l.href="vendor/maplibre-gl.css";document.head.appendChild(l);
+  const s=document.createElement("script");s.src="vendor/maplibre-gl.js";s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+function mkEl(cls,txt){const e=document.createElement("div");e.className="mk "+cls;e.textContent=txt;return e;}
+function initMap(){
+  const c=lastOrig?[lastOrig.lon,lastOrig.lat]:[-77.03,-12.05];
+  map=new maplibregl.Map({container:"map",center:c,zoom:14,pitch:55,maxPitch:80,attributionControl:{compact:true},
+    style:{version:8,sources:{
+      sat:{type:"raster",tiles:[SAT],tileSize:256,maxzoom:19,attribution:"Esri World Imagery"},
+      topo:{type:"raster",tiles:TOPO,tileSize:256,maxzoom:17,attribution:"© OpenTopoMap (CC-BY-SA) · © OpenStreetMap"},
+      dem:{type:"raster-dem",tiles:[DEM],encoding:"terrarium",tileSize:256,maxzoom:15,attribution:"Terrain Tiles (AWS)"},
+      dem2:{type:"raster-dem",tiles:[DEM],encoding:"terrarium",tileSize:256,maxzoom:15},
+      line:{type:"geojson",data:{type:"FeatureCollection",features:[]}}},
+    layers:[
+      {id:"bg",type:"background",paint:{"background-color":"#E9E6DA"}},
+      {id:"sat",type:"raster",source:"sat"},
+      {id:"topo",type:"raster",source:"topo",layout:{visibility:"none"}},
+      {id:"hs",type:"hillshade",source:"dem2",paint:{"hillshade-exaggeration":0.3,"hillshade-shadow-color":"#1b1b10"}},
+      {id:"line",type:"line",source:"line",paint:{"line-color":"#F2D27A","line-width":3,"line-dasharray":[2,1.5]}}]}});
+  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
+  map.addControl(new maplibregl.ScaleControl({unit:"metric"}),"bottom-left");
+  map.on("load",()=>{mapReady=true;map.setTerrain({source:"dem",exaggeration:+$("exag").value});syncMap(true);});
+  map.on("click",e=>pick(e.lngLat.lat,e.lngLat.lng,true));
+}
+function cota(la,lo){try{const h=map.queryTerrainElevation([lo,la]);const ex=map.getTerrain()?.exaggeration||1;return h==null||!ex?null:h/ex;}catch(e){return null;}}
+function pick(la,lo,apply){
+  picked={la,lo};
+  const h=cota(la,lo);
+  $("mapInfo").innerHTML='<span class="k">'+(mapMode==="origin"&&apply?"Origen marcado":mapMode==="target"&&apply?"Punto marcado":"Punto consultado")+'</span>'+
+    '<span>'+dms(la,"N","S")+"  "+dms(lo,"E","O")+'</span><span>'+utmTxt(la,lo)+'</span>'+(h!=null?'<span>Cota ≈ '+Math.round(h)+' m</span>':'');
+  $("mapCopy").hidden=false;
+  if(apply&&mapMode==="origin")setOrigin(la,lo);
+  if(apply&&mapMode==="target")setTarget(la,lo);
+}
+function syncMap(fit){
+  if(!map||!mapReady)return;
+  const pts=[];
+  if(lastOrig){
+    if(!mkO){mkO=new maplibregl.Marker({element:mkEl("o","ORIGEN"),anchor:"bottom",draggable:true}).setLngLat([lastOrig.lon,lastOrig.lat]).addTo(map);
+      mkO.on("dragend",()=>{const p=mkO.getLngLat();pick(p.lat,p.lng,false);setOrigin(p.lat,p.lng);});}
+    else mkO.setLngLat([lastOrig.lon,lastOrig.lat]);
+    pts.push([lastOrig.lon,lastOrig.lat]);
+  }
+  if(last){
+    if(!mkT){mkT=new maplibregl.Marker({element:mkEl("t","PUNTO"),anchor:"bottom",draggable:true}).setLngLat([last.t.lon,last.t.lat]).addTo(map);
+      mkT.on("dragend",()=>{const p=mkT.getLngLat();pick(p.lat,p.lng,false);setTarget(p.lat,p.lng);});}
+    else mkT.setLngLat([last.t.lon,last.t.lat]);
+    pts.push([last.t.lon,last.t.lat]);
+  }else if(mkT){mkT.remove();mkT=null;}
+  const src=map.getSource("line");
+  if(pts.length===2){
+    src.setData({type:"Feature",geometry:{type:"LineString",coordinates:pts}});
+    const mid=[(pts[0][0]+pts[1][0])/2,(pts[0][1]+pts[1][1])/2];
+    const txt=Math.round(last.az*6400/360)+" mils · "+(last.dist>=1000?fm(last.dist/1000,2)+" km":fm(last.dist,0)+" m");
+    if(!mkLbl){const e=document.createElement("div");e.className="mklbl";mkLbl=new maplibregl.Marker({element:e}).setLngLat(mid).addTo(map);}
+    mkLbl.setLngLat(mid);mkLbl.getElement().textContent=txt;
+  }else{src.setData({type:"FeatureCollection",features:[]});if(mkLbl){mkLbl.remove();mkLbl=null;}}
+  if(fit&&pts.length===2&&last.dist>1){const b=new maplibregl.LngLatBounds(pts[0],pts[0]);b.extend(pts[1]);map.fitBounds(b,{padding:80,maxZoom:17,duration:0});}
+  else if(fit&&pts.length)map.jumpTo({center:pts[0]});
+}
+function setLayer(m){
+  if(!map)return;
+  map.setLayoutProperty("sat","visibility",m==="sat"?"visible":"none");
+  map.setLayoutProperty("topo","visibility",m==="topo"?"visible":"none");
+  map.setPaintProperty("hs","hillshade-exaggeration",m==="relief"?0.85:m==="topo"?0.2:0.3);
+}
+$("openMap").addEventListener("click",async()=>{
+  $("mapView").hidden=false;document.body.style.overflow="hidden";
+  $("mapOffline").hidden=navigator.onLine!==false;
+  try{await loadLib();}catch(e){$("mapInfo").innerHTML='<span class="k">No se pudo cargar el mapa. Ábrelo una vez con internet.</span>';return;}
+  if(!map)initMap();else{map.resize();syncMap(true);}
+});
+$("mapClose").addEventListener("click",()=>{$("mapView").hidden=true;document.body.style.overflow="";});
+document.querySelectorAll("[data-mm]").forEach(b=>b.addEventListener("click",()=>{mapMode=b.dataset.mm;document.querySelectorAll("[data-mm]").forEach(x=>x.setAttribute("aria-pressed",x===b));}));
+document.querySelectorAll("[data-ml]").forEach(b=>b.addEventListener("click",()=>{setLayer(b.dataset.ml);document.querySelectorAll("[data-ml]").forEach(x=>x.setAttribute("aria-pressed",x===b));}));
+$("exag").addEventListener("input",()=>{if(map&&mapReady)map.setTerrain(+$("exag").value>0?{source:"dem",exaggeration:+$("exag").value}:null);});
+$("map3d").addEventListener("click",()=>{is3d=!is3d;$("map3d").textContent=is3d?"Vista 2D":"Vista 3D";if(map)map.easeTo({pitch:is3d?55:0,bearing:is3d?map.getBearing():0});});
+$("mapCopy").addEventListener("click",()=>{if(picked)copyText(geoTxt(picked.la,picked.lo)+"\n"+utmTxt(picked.la,picked.lo),$("mapCopy"));});
+$("mapGps").addEventListener("click",()=>{
+  const b=$("mapGps");if(!navigator.geolocation||window.isSecureContext===false){$("mapInfo").innerHTML='<span class="k">GPS no disponible en este navegador.</span>';return;}
+  b.textContent="Buscando…";
+  navigator.geolocation.getCurrentPosition(p=>{
+    b.textContent="Mi ubicación";const la=p.coords.latitude,lo=p.coords.longitude;
+    if(map){if(!mkMe)mkMe=new maplibregl.Marker({element:mkEl("me","YO"),anchor:"bottom"}).setLngLat([lo,la]).addTo(map);else mkMe.setLngLat([lo,la]);map.flyTo({center:[lo,la],zoom:Math.max(map.getZoom(),15)});}
+    pick(la,lo,mapMode!=="info");
+    $("mapInfo").insertAdjacentHTML("beforeend",'<span class="k">GPS ±'+Math.round(p.coords.accuracy)+' m</span>');
+  },()=>{b.textContent="Mi ubicación";$("mapInfo").innerHTML='<span class="k">No se pudo obtener el GPS. Revisa el permiso y la ubicación del dispositivo.</span>';},
+  {enableHighAccuracy:true,timeout:45000,maximumAge:0});
+});
 
 compute();
 })();
